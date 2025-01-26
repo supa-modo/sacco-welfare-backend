@@ -516,6 +516,62 @@ const loanController = {
       res.status(500).json({ error: error.message });
     }
   },
+
+  // Get member's monthly loan balances
+  getMemberMonthlyLoanBalances: async (req, res) => {
+    try {
+      const { memberId } = req.params;
+      const loans = await Loan.findAll({
+        where: {
+          memberId,
+          status: "Active",
+        },
+        include: [
+          {
+            model: LoanRepayment,
+            attributes: [
+              "date",
+              "amount",
+              "principalAmount",
+              "interestAmount",
+              "balanceAfter",
+            ],
+          },
+        ],
+        order: [[LoanRepayment, "date", "ASC"]],
+      });
+
+      // Get all repayment dates and group by month
+      const monthlyBalances = {};
+
+      loans.forEach((loan) => {
+        loan.LoanRepayments.forEach((repayment) => {
+          const date = new Date(repayment.date);
+          const monthKey = `${date.getFullYear()}-${String(
+            date.getMonth() + 1
+          ).padStart(2, "0")}`;
+
+          if (!monthlyBalances[monthKey]) {
+            monthlyBalances[monthKey] = 0;
+          }
+          monthlyBalances[monthKey] = repayment.balanceAfter;
+        });
+      });
+
+      // Convert to array and sort by date
+      const balanceHistory = Object.entries(monthlyBalances)
+        .map(([month, balance]) => ({
+          month,
+          loanBalance: balance,
+        }))
+        .sort((a, b) => a.month.localeCompare(b.month));
+
+      res.json(balanceHistory);
+    } catch (error) {
+      console.error("Error getting monthly loan balances:", error);
+      res.status(500).json({ error: "Failed to get monthly loan balances" });
+    }
+  },
 };
 
 module.exports = { loanController, upload };

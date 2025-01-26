@@ -49,6 +49,8 @@ router.post(
   loanController.recordGroupRepayment
 );
 
+
+
 // Routes accessible by all authenticated users
 router.get("/", loanController.getAllLoans);
 router.get("/:id", loanController.getLoan);

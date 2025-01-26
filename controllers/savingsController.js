@@ -363,6 +363,43 @@ const savingsController = {
       res.status(500).json({ error: error.message });
     }
   },
+
+  // Get member's monthly savings balances
+  getMemberMonthlySavingsBalances: async (req, res) => {
+    try {
+      const { memberId } = req.params;
+      const transactions = await SavingsTransaction.findAll({
+        where: { memberId },
+        attributes: ["date", "amount", "balanceAfter"],
+        order: [["date", "ASC"]],
+      });
+
+      // Group transactions by month
+      const monthlyBalances = {};
+
+      transactions.forEach((transaction) => {
+        const date = new Date(transaction.date);
+        const monthKey = `${date.getFullYear()}-${String(
+          date.getMonth() + 1
+        ).padStart(2, "0")}`;
+
+        monthlyBalances[monthKey] = transaction.balanceAfter;
+      });
+
+      // Convert to array and sort by date
+      const balanceHistory = Object.entries(monthlyBalances)
+        .map(([month, balance]) => ({
+          month,
+          savingsBalance: balance,
+        }))
+        .sort((a, b) => a.month.localeCompare(b.month));
+
+      res.json(balanceHistory);
+    } catch (error) {
+      console.error("Error getting monthly savings balances:", error);
+      res.status(500).json({ error: "Failed to get monthly savings balances" });
+    }
+  },
 };
 
 module.exports = savingsController;
