@@ -7,12 +7,12 @@ const path = require("path");
 // Add route to serve document files
 router.get("/documents/:id/:documentType", loanController.getDocument);
 
-// router.use(auth); // Protect all loan routes
+router.use(auth); // Protect all loan routes
 
 // Admin only routes
 router.post(
   "/",
-  // authorize("admin", "superadmin"),
+  authorize("admin", "superadmin", "member"),
   upload.fields([
     { name: "employmentContract", maxCount: 1 },
     { name: "bankStatements", maxCount: 1 },
@@ -23,7 +23,7 @@ router.post(
 
 router.post(
   "/upload-documents",
-  // authorize("admin", "superadmin"),
+  authorize("admin", "superadmin", "member"),
   upload.fields([
     { name: "employmentContract", maxCount: 1 },
     { name: "bankStatements", maxCount: 1 },
@@ -34,18 +34,18 @@ router.post(
 
 router.put(
   "/:id/approve",
-  // authorize("admin", "superadmin"),
+  authorize("admin", "superadmin"),
   loanController.approveLoan
 );
 
 router.post(
   "/repayment",
-  // authorize("admin", "superadmin"),
+  authorize("admin", "superadmin"),
   loanController.recordRepayment
 );
 router.post(
   "/group-repayment",
-  // authorize("admin", "superadmin"),
+  authorize("admin", "superadmin"),
   loanController.recordGroupRepayment
 );
 
