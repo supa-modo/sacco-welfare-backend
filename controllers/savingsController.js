@@ -7,7 +7,7 @@ const {
 } = require("../models");
 
 const savingsController = {
-  // Get all savings transactions
+  // Get all savings
   getAllSavings: async (req, res) => {
     try {
       const savings = await SavingsHistory.findAll({
@@ -17,6 +17,19 @@ const savingsController = {
             as: "member",
             attributes: ["name", "email"],
           },
+          {
+            model: SavingsTransaction,
+            as: "transactions",
+            order: [["transactionDate", "DESC"]], // Sort transactions by date
+          },
+        ],
+        order: [
+          ["updatedAt", "DESC"], // Sort savings by latest update
+          [
+            { model: SavingsTransaction, as: "transactions" },
+            "transactionDate",
+            "DESC",
+          ],
         ],
       });
       res.json(savings);
@@ -25,7 +38,7 @@ const savingsController = {
     }
   },
 
-  // Get member's savings history
+  // Get member savings
   getMemberSavings: async (req, res) => {
     try {
       const savingsHistory = await SavingsHistory.findOne({
@@ -34,15 +47,55 @@ const savingsController = {
           {
             model: SavingsTransaction,
             as: "transactions",
+            order: [["transactionDate", "DESC"]], // Sort transactions by date
           },
+        ],
+        order: [
+          ["updatedAt", "DESC"], // Sort savings by latest update
+          [
+            { model: SavingsTransaction, as: "transactions" },
+            "transactionDate",
+            "DESC",
+          ],
+        ],
+      });
+      res.json(savingsHistory);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+
+  // Get single savings record
+  getSaving: async (req, res) => {
+    try {
+      const saving = await Saving.findByPk(req.params.id, {
+        include: [
+          {
+            model: Member,
+            as: "member",
+            attributes: ["id", "name", "email", "phone"],
+          },
+          {
+            model: SavingsTransaction,
+            as: "transactions",
+            order: [["transactionDate", "DESC"]], // Sort transactions by date
+          },
+        ],
+        order: [
+          ["updatedAt", "DESC"],
+          [
+            { model: SavingsTransaction, as: "transactions" },
+            "transactionDate",
+            "DESC",
+          ],
         ],
       });
 
-      if (!savingsHistory) {
-        return res.status(404).json({ error: "Savings history not found" });
+      if (!saving) {
+        return res.status(404).json({ error: "Savings record not found" });
       }
 
-      res.json(savingsHistory);
+      res.json(saving);
     } catch (error) {
       res.status(500).json({ error: error.message });
     }

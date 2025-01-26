@@ -25,6 +25,7 @@ const memberController = {
             attributes: ["id", "amount", "date"],
           },
         ],
+        order: [["updatedAt", "DESC"]],
       });
       res.json(members);
     } catch (error) {
@@ -40,15 +41,28 @@ const memberController = {
           {
             model: Loan,
             as: "loans",
+            order: [["updatedAt", "DESC"]],
           },
           {
             model: Saving,
             as: "savings",
+            order: [["date", "DESC"]],
           },
           {
             model: SavingsHistory,
             as: "savingsHistory",
+            order: [["updatedAt", "DESC"]],
           },
+        ],
+        order: [
+          ["updatedAt", "DESC"],
+          [{ model: Loan, as: "loans" }, "updatedAt", "DESC"],
+          [{ model: Saving, as: "savings" }, "date", "DESC"],
+          [
+            { model: SavingsHistory, as: "savingsHistory" },
+            "updatedAt",
+            "DESC",
+          ],
         ],
       });
 

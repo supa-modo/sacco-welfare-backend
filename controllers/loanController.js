@@ -48,12 +48,17 @@ const loanController = {
           {
             model: Member,
             as: "member",
-            attributes: ["name", "email"],
+            attributes: ["id", "name", "email", "phone"],
           },
           {
             model: LoanRepayment,
             as: "repayments",
+            order: [["date", "DESC"]], // Sort repayments by date
           },
+        ],
+        order: [
+          ["updatedAt", "DESC"], // Sort loans by latest update
+          [{ model: LoanRepayment, as: "repayments" }, "date", "DESC"],
         ],
       });
       res.json(loans);
@@ -70,12 +75,17 @@ const loanController = {
           {
             model: Member,
             as: "member",
-            attributes: ["name", "email"],
+            attributes: ["id", "name", "email", "phone"],
           },
           {
             model: LoanRepayment,
             as: "repayments",
+            order: [["date", "DESC"]], // Sort repayments by date
           },
+        ],
+        order: [
+          ["updatedAt", "DESC"],
+          [{ model: LoanRepayment, as: "repayments" }, "date", "DESC"],
         ],
       });
 
@@ -482,7 +492,12 @@ const loanController = {
           {
             model: LoanRepayment,
             as: "repayments",
+            order: [["date", "DESC"]], // Sort repayments by date
           },
+        ],
+        order: [
+          ["updatedAt", "DESC"], // Sort loans by latest update
+          [{ model: LoanRepayment, as: "repayments" }, "date", "DESC"],
         ],
       });
       res.json(loans);
