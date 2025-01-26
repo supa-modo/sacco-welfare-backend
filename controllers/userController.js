@@ -13,7 +13,7 @@ const userController = {
       // Check if user exists
       const existingUser = await User.findOne({ where: { userEmail } });
       if (existingUser) {
-        return res.status(400).json({ error: "Username already exists" });
+        return res.status(400).json({ error: "Email already exists" });
       }
 
       // If memberId provided, verify member exists
@@ -29,7 +29,7 @@ const userController = {
 
       // Create user
       const user = await User.create({
-        username,
+        userEmail,
         password: hashedPassword,
         role,
         memberId,
@@ -81,6 +81,25 @@ const userController = {
     }
   },
 
+  // Get all users (admin only)
+  getAllUsers: async (req, res) => {
+    try {
+      const users = await User.findAll({
+        attributes: { exclude: ["password"] },
+        include: [
+          {
+            model: Member,
+            as: "member",
+            attributes: ["name", "status"],
+          },
+        ],
+      });
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+
   // Get current user profile
   getProfile: async (req, res) => {
     try {
@@ -114,6 +133,69 @@ const userController = {
       });
 
       res.json({ message: "Profile updated successfully" });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+
+  // Reset user password (admin only)
+  resetPassword: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { newPassword } = req.body;
+
+      const user = await User.findByPk(id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await user.update({ password: hashedPassword });
+
+      res.json({ message: "Password reset successfully" });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+
+  // Update user email (admin only)
+  updateEmail: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { newEmail } = req.body;
+
+      const user = await User.findByPk(id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check if email is already in use
+      const existingUser = await User.findOne({
+        where: { userEmail: newEmail },
+      });
+      if (existingUser && existingUser.id !== parseInt(id)) {
+        return res.status(400).json({ error: "Email already in use" });
+      }
+
+      await user.update({ userEmail: newEmail });
+      res.json({ message: "Email updated successfully" });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+
+  // Delete user (admin only)
+  deleteUser: async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const user = await User.findByPk(id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      await user.destroy();
+      res.json({ message: "User deleted successfully" });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }

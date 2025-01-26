@@ -8,20 +8,34 @@ router.post("/register", userController.register);
 router.post("/login", userController.login);
 
 // Protected routes
+router.get("/profile", auth, userController.getProfile);
+router.put("/profile", auth, userController.updateProfile);
+router.post("/logout", auth, userController.logout);
+
+// Admin routes
 router.get(
-  "/profile",
-  //  auth,
-  userController.getProfile
-);
-router.put(
-  "/profile",
-  // auth,
-  userController.updateProfile
+  "/",
+  auth,
+  authorize(["admin", "superadmin"]),
+  userController.getAllUsers
 );
 router.post(
-  "/logout",
-  // auth,
-  userController.logout
+  "/:id/reset-password",
+  auth,
+  authorize(["admin", "superadmin"]),
+  userController.resetPassword
+);
+router.put(
+  "/:id/email",
+  auth,
+  authorize(["admin", "superadmin"]),
+  userController.updateEmail
+);
+router.delete(
+  "/:id",
+  auth,
+  authorize(["admin", "superadmin"]),
+  userController.deleteUser
 );
 
 module.exports = router;

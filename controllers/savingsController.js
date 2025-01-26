@@ -212,15 +212,16 @@ const savingsController = {
     const t = await sequelize.transaction();
 
     try {
-      const { amount, date, month, year, notes } = req.body;
+      const { amount, date, month, year, notes, type } = req.body;
 
-      // Get all active members
+      // Get all active members with their savings history
       const activeMembers = await Member.findAll({
         where: { status: "Active" },
         include: [
           {
             model: SavingsHistory,
             as: "savingsHistory",
+            required: false,
           },
         ],
       });
@@ -229,15 +230,19 @@ const savingsController = {
 
       // Process savings for each active member
       for (const member of activeMembers) {
-        const contributionAmount =
-          member.savingsHistory?.monthlySavingsAmt || amount;
+        // Use member's configured monthly amount or the provided default amount
+        const contributionAmount = amount
+          ? parseFloat(amount)
+          : member.savingsHistory?.monthlySavingsAmt
+          ? parseFloat(member.savingsHistory.monthlySavingsAmt)
+          : 1000;
 
         // Create savings record
         const saving = await Saving.create(
           {
             memberId: member.id,
             amount: contributionAmount,
-            type: "Monthly Contribution",
+            type: type || "Monthly Contribution",
             date: new Date(date),
             status: "Completed",
           },
@@ -246,7 +251,7 @@ const savingsController = {
 
         // Update member's savings balance
         const newBalance =
-          parseFloat(member.savingsBalance) + parseFloat(contributionAmount);
+          parseFloat(member.savingsBalance || 0) + contributionAmount;
         await member.update(
           {
             savingsBalance: newBalance,
@@ -255,12 +260,23 @@ const savingsController = {
           { transaction: t }
         );
 
-        // Update savings history
+        // Get or create savings history
         let savingsHistory = await SavingsHistory.findOne({
           where: { memberId: member.id },
         });
 
-        if (savingsHistory) {
+        if (!savingsHistory) {
+          savingsHistory = await SavingsHistory.create(
+            {
+              memberId: member.id,
+              currentSavingsBalance: newBalance,
+              monthlySavingsAmt: contributionAmount,
+              accountStatus: "Active",
+              dateJoined: member.joinDate || new Date(),
+            },
+            { transaction: t }
+          );
+        } else {
           await savingsHistory.update(
             {
               currentSavingsBalance: newBalance,
@@ -278,7 +294,7 @@ const savingsController = {
             transactionType: "Deposit",
             amount: contributionAmount,
             balanceAfter: newBalance,
-            notes: `Monthly Contribution for ${month} ${year}`,
+            notes: notes || `Monthly Contribution for ${month} ${year}`,
           },
           { transaction: t }
         );
@@ -290,6 +306,7 @@ const savingsController = {
       res.status(201).json(results);
     } catch (error) {
       await t.rollback();
+      console.error("Group Deposit Error:", error);
       res.status(500).json({ error: error.message });
     }
   },
