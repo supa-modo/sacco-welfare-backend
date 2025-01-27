@@ -38,6 +38,12 @@ router.put(
   loanController.approveLoan
 );
 
+router.put(
+  "/:id/reject",
+  authorize("admin", "superadmin"),
+  loanController.rejectLoan
+);
+
 router.post(
   "/repayment",
   authorize("admin", "superadmin"),
@@ -48,8 +54,6 @@ router.post(
   authorize("admin", "superadmin"),
   loanController.recordGroupRepayment
 );
-
-
 
 // Routes accessible by all authenticated users
 router.get("/", loanController.getAllLoans);

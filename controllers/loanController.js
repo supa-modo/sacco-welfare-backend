@@ -259,7 +259,38 @@ const loanController = {
       );
 
       await t.commit();
-      res.json(loan);
+      res.json({ success: true, message: "Loan approved successfully", loan });
+    } catch (error) {
+      await t.rollback();
+      res.status(500).json({ error: error.message });
+    }
+  },
+
+  // Reject loan application
+  rejectLoan: async (req, res) => {
+    const t = await sequelize.transaction();
+
+    try {
+      const loan = await Loan.findByPk(req.params.id, { transaction: t });
+
+      if (!loan) {
+        throw new Error("Loan not found");
+      }
+
+      if (loan.status !== "Pending") {
+        throw new Error("Can only reject pending loans");
+      }
+
+      // Update loan status
+      await loan.update(
+        {
+          status: "Rejected",
+        },
+        { transaction: t }
+      );
+
+      await t.commit();
+      res.json({ success: true, message: "Loan rejected successfully", loan });
     } catch (error) {
       await t.rollback();
       res.status(500).json({ error: error.message });

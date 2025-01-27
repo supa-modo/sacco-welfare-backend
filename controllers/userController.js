@@ -5,10 +5,42 @@ const { User, Member } = require("../models");
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
 const userController = {
+  // Check member ID and get details
+  checkMember: async (req, res) => {
+    try {
+      const { memberId } = req.params;
+      const member = await Member.findByPk(memberId);
+
+      if (!member) {
+        return res.status(404).json({ error: "Member not found" });
+      }
+
+      // Check if user already exists for this member
+      const existingUser = await User.findOne({ where: { memberId } });
+      if (existingUser) {
+        return res.status(400).json({ error: "Member already has an account" });
+      }
+
+      res.json({
+        email: member.email,
+        name: member.name,
+        status: member.status,
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+
   // Register new user
   register: async (req, res) => {
     try {
-      const { userEmail, password, role, memberId } = req.body;
+      const { userEmail, password, memberId } = req.body;
+
+      if (!userEmail || !password || !memberId) {
+        return res.status(400).json({
+          error: "Email, password, and member ID are required",
+        });
+      }
 
       // Check if user exists
       const existingUser = await User.findOne({ where: { userEmail } });
@@ -16,12 +48,17 @@ const userController = {
         return res.status(400).json({ error: "Email already exists" });
       }
 
-      // If memberId provided, verify member exists
-      if (memberId) {
-        const member = await Member.findByPk(memberId);
-        if (!member) {
-          return res.status(400).json({ error: "Invalid member ID" });
-        }
+      // Verify member exists
+      const member = await Member.findByPk(memberId);
+      if (!member) {
+        return res.status(400).json({ error: "Invalid member ID" });
+      }
+
+      // Verify member email matches
+      if (member.email !== userEmail) {
+        return res.status(400).json({
+          error: "Email does not match member records",
+        });
       }
 
       // Hash password
@@ -31,14 +68,17 @@ const userController = {
       const user = await User.create({
         userEmail,
         password: hashedPassword,
-        role,
+        role: "member",
         memberId,
       });
 
       const { password: _, ...userWithoutPassword } = user.toJSON();
       res.status(201).json(userWithoutPassword);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      console.error("Registration error:", error);
+      res.status(500).json({
+        error: "An error occurred during registration",
+      });
     }
   },
 

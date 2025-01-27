@@ -31,6 +31,8 @@ router.put(
   authorize(["admin", "superadmin"]),
   userController.updateEmail
 );
+
+router.get("/check-member/:memberId", userController.checkMember);
 router.delete(
   "/:id",
   auth,
