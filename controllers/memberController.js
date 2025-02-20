@@ -147,7 +147,7 @@ const memberController = {
       });
 
       if (!updated) {
-        return res.status(404).json({ error: "Member not found" });
+        return res.status(404).json({ error: "Member update unsuccessful" });
       }
 
       const updatedMember = await Member.findByPk(req.params.id);
